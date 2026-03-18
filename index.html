@@ -77,15 +77,29 @@
       background: var(--surface); border: 1px solid var(--border);
       border-radius: var(--radius); padding: 0.75rem 1rem;
       animation: slideIn 0.3s ease-out;
+      position: relative; overflow: hidden;
     }
 
     @keyframes slideIn { from { opacity: 0; transform: translateX(-10px); } to { opacity: 1; transform: translateX(0); } }
+
+    .file-item .progress-bar {
+      position: absolute; left: 0; bottom: 0;
+      height: 2px; background: var(--accent);
+      transition: width 0.15s ease; width: 0%;
+    }
+
+    .file-item.done { border-color: rgba(74, 222, 128, 0.3); }
+    .file-item.error { border-color: rgba(248, 113, 113, 0.3); }
 
     .file-icon { flex-shrink: 0; width: 34px; height: 34px; background: var(--accent-dim); border-radius: 6px; display: flex; align-items: center; justify-content: center; }
     .file-icon svg { width: 18px; height: 18px; stroke: var(--accent); }
     .file-meta { flex: 1; min-width: 0; }
     .file-meta .name { font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .file-meta .size { font-size: 0.72rem; color: var(--text-dim); margin-top: 1px; }
+
+    .file-status { flex-shrink: 0; font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-dim); }
+    .file-status.ok { color: var(--accent); }
+    .file-status.err { color: var(--danger); }
 
     .file-remove { flex-shrink: 0; background: none; border: none; cursor: pointer; color: var(--text-dim); padding: 4px; border-radius: 4px; transition: color 0.15s, background 0.15s; }
     .file-remove:hover { color: var(--danger); background: rgba(248, 113, 113, 0.1); }
@@ -103,6 +117,7 @@
     .upload-btn.visible { display: block; animation: fadeUp 0.3s ease-out; }
     .upload-btn:hover { opacity: 0.88; }
     .upload-btn:active { transform: scale(0.99); }
+    .upload-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
     .toast {
       position: fixed; bottom: 2rem; left: 50%;
@@ -141,15 +156,24 @@
   <div class="file-list" id="fileList"></div>
   <button class="upload-btn" id="uploadBtn">UPLOAD FILES</button>
   <div class="toast" id="toast"></div>
-  <footer>ready</footer>
+  <footer>s3 direct upload</footer>
 
   <script>
+    // =====================================================
+    //  CONFIG — your S3 bucket
+    // =====================================================
+    const BUCKET = 'file-drop-uploads-082223548160';
+    const REGION = 'us-east-1';
+    const S3_URL = `https://${BUCKET}.s3.${REGION}.amazonaws.com/uploads`;
+    // =====================================================
+
     const dropZone  = document.getElementById('dropZone');
     const fileInput = document.getElementById('fileInput');
     const fileList  = document.getElementById('fileList');
     const uploadBtn = document.getElementById('uploadBtn');
     const toast     = document.getElementById('toast');
     let selectedFiles = [];
+    let uploading = false;
 
     ['dragenter','dragover'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.add('drag-over'); }));
     ['dragleave','drop'].forEach(e => dropZone.addEventListener(e, ev => { ev.preventDefault(); dropZone.classList.remove('drag-over'); }));
@@ -158,31 +182,87 @@
     fileInput.addEventListener('change', () => { addFiles(fileInput.files); fileInput.value = ''; });
 
     function addFiles(list) {
+      if (uploading) return;
       for (const f of list) {
         if (!selectedFiles.find(s => s.name === f.name && s.size === f.size)) selectedFiles.push(f);
       }
       renderList();
     }
 
-    function removeFile(idx) { selectedFiles.splice(idx, 1); renderList(); }
+    function removeFile(idx) {
+      if (uploading) return;
+      selectedFiles.splice(idx, 1);
+      renderList();
+    }
 
     function renderList() {
       fileList.innerHTML = '';
       selectedFiles.forEach((f, i) => {
         const item = document.createElement('div');
         item.className = 'file-item';
+        item.id = `file-${i}`;
         item.innerHTML = `
+          <div class="progress-bar" id="prog-${i}"></div>
           <div class="file-icon"><svg viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
           <div class="file-meta"><div class="name">${escHtml(f.name)}</div><div class="size">${formatSize(f.size)}</div></div>
+          <span class="file-status" id="status-${i}"></span>
           <button class="file-remove" onclick="removeFile(${i})"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>`;
         fileList.appendChild(item);
       });
       uploadBtn.classList.toggle('visible', selectedFiles.length > 0);
     }
 
-    uploadBtn.addEventListener('click', () => {
-      // TODO: wire up S3 backend
-      showToast(`${selectedFiles.length} file(s) queued — backend not connected yet`);
+    uploadBtn.addEventListener('click', async () => {
+      if (!selectedFiles.length || uploading) return;
+      uploading = true;
+      uploadBtn.textContent = 'UPLOADING…';
+      uploadBtn.disabled = true;
+
+      let ok = 0, fail = 0;
+
+      for (let i = 0; i < selectedFiles.length; i++) {
+        const f = selectedFiles[i];
+        const statusEl = document.getElementById(`status-${i}`);
+        const progEl   = document.getElementById(`prog-${i}`);
+        const itemEl   = document.getElementById(`file-${i}`);
+
+        // Unique key: timestamp + random + original filename
+        const key = `${Date.now()}_${Math.random().toString(36).slice(2, 8)}_${f.name}`;
+        const url = `${S3_URL}/${encodeURIComponent(key)}`;
+
+        statusEl.textContent = 'uploading…';
+
+        try {
+          await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', url);
+            xhr.setRequestHeader('Content-Type', f.type || 'application/octet-stream');
+
+            xhr.upload.onprogress = (e) => {
+              if (e.lengthComputable) progEl.style.width = `${(e.loaded / e.total) * 100}%`;
+            };
+
+            xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`${xhr.status}`));
+            xhr.onerror = () => reject(new Error('network error'));
+            xhr.send(f);
+          });
+
+          statusEl.textContent = '✓';
+          statusEl.className = 'file-status ok';
+          itemEl.classList.add('done');
+          ok++;
+        } catch (err) {
+          console.error(`Upload failed: ${f.name}`, err);
+          statusEl.textContent = '✗ ' + err.message;
+          statusEl.className = 'file-status err';
+          itemEl.classList.add('error');
+          fail++;
+        }
+      }
+
+      showToast(fail ? `${ok} uploaded, ${fail} failed` : `${ok} file(s) uploaded`);
+      selectedFiles = [];
+      setTimeout(() => { renderList(); uploading = false; uploadBtn.textContent = 'UPLOAD FILES'; uploadBtn.disabled = false; }, 2000);
     });
 
     function formatSize(bytes) {
