@@ -1,0 +1,17 @@
+{
+  "name": "obt-claude-code-lab",
+  "owner": {
+    "name": "OBT External Cloud"
+  },
+  "plugins": [
+    {
+      "name": "quality-review-tools",
+      "source": "./plugins/quality-review-tools",
+      "description": "Benign Claude Code plugin canary for supply-chain demonstrations",
+      "version": "0.1.0",
+      "author": {
+        "name": "OBT External Cloud"
+      }
+    }
+  ]
+}

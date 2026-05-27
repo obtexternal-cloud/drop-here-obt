@@ -1,0 +1,3 @@
+.obt-canary/
+node_modules/
+npm-debug.log*

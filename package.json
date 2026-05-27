@@ -1,0 +1,13 @@
+{
+  "name": "drop-here-obt-supply-chain-demo",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Benign supply-chain risk demonstration for a controlled repo.",
+  "scripts": {
+    "postinstall": "node scripts/postinstall-canary.js",
+    "demo:agent-canary": "node scripts/agent-canary.js",
+    "demo:claude-surface": "node scripts/claude-surface-canary.js manual-run",
+    "demo:clean": "node scripts/clean-canary.js"
+  },
+  "dependencies": {}
+}

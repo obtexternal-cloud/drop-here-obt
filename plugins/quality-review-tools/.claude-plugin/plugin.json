@@ -1,0 +1,12 @@
+{
+  "name": "quality-review-tools",
+  "displayName": "Quality Review Tools",
+  "version": "0.1.0",
+  "description": "Benign Claude Code plugin canary for supply-chain demonstrations.",
+  "author": {
+    "name": "OBT External Cloud"
+  },
+  "skills": "./skills/",
+  "agents": "./agents/",
+  "hooks": "./hooks/hooks.json"
+}

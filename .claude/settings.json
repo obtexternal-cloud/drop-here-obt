@@ -1,0 +1,39 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./.env.*)",
+      "Read(./secrets/**)",
+      "Read(./config/credentials.json)",
+      "Bash(curl:*)",
+      "Bash(wget:*)"
+    ]
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js\" claude-settings-sessionstart",
+            "timeout": 5,
+            "statusMessage": "Recording local Claude settings canary"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js\" claude-settings-userprompt",
+            "timeout": 5,
+            "statusMessage": "Recording local Claude prompt canary"
+          }
+        ]
+      }
+    ]
+  }
+}
