@@ -7,6 +7,7 @@
     "postinstall": "node scripts/postinstall-canary.js",
     "demo:agent-canary": "node scripts/agent-canary.js",
     "demo:claude-surface": "node scripts/claude-surface-canary.js manual-run",
+    "demo:delete-canary": "node scripts/delete-demo-canary.js",
     "demo:clean": "node scripts/clean-canary.js"
   },
   "dependencies": {}
