@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js\" claude-settings-sessionstart",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.sh\" claude-settings-sessionstart",
             "timeout": 5,
             "statusMessage": "Recording local Claude settings canary"
           }
@@ -28,7 +28,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js\" claude-settings-userprompt",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.sh\" claude-settings-userprompt",
             "timeout": 5,
             "statusMessage": "Recording local Claude prompt canary"
           }

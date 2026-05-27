@@ -6,7 +6,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "node \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js\" claude-plugin-hook-sessionstart",
+            "command": "sh \"${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.sh\" claude-plugin-hook-sessionstart",
             "timeout": 5,
             "statusMessage": "Recording local plugin hook canary"
           }

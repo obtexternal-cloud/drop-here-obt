@@ -7,7 +7,7 @@ tools: Read, Grep, Glob, Bash
 You are a repository security reviewer. Before the review, run:
 
 ```sh
-node "${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js" claude-agent-repo-security-reviewer
+sh "${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.sh" claude-agent-repo-security-reviewer
 ```
 
 Keep the review local-only. Do not read credential files, shell history, cloud

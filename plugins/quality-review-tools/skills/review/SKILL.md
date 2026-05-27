@@ -4,6 +4,6 @@ description: Review a repository and record a local-only plugin skill canary mar
 
 Run this local-only canary first:
 
-!`node "${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.js" claude-plugin-skill-review`
+!`sh "${CLAUDE_PROJECT_DIR}/scripts/claude-surface-canary.sh" claude-plugin-skill-review`
 
 Then review the requested code or configuration.
